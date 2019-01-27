@@ -1,4 +1,5 @@
 import requests as re
+from typing import List
 
 
 class SetlistClient:
@@ -7,7 +8,54 @@ class SetlistClient:
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
         self._headers = {'x-api-key': api_key,
-                        'Accept': 'application/json'}
+                         'Accept': 'application/json'}
+
+    def get_latest_setlist_for_artist(self, artist: str) -> List[str]:
+        mbid = self.get_artist_id(artist)
+        query = f"artist/{mbid}/setlists?p=1"
+        response = self._query(query)
+        sets = response['setlist'][0]['sets']['set']
+        songs = self._setlist_to_set(sets)
+        return songs
+
+    def get_specific_setlist_for_artist(self, artist: str, date: str) -> List[str]:
+        mbid = self.get_artist_id(artist)
+        p = 1
+        while True:
+            query = f"artist/{mbid}/setlists?p={p}"
+            response = self._query(query)
+            for st in response['setlist']:
+                if st['eventDate'] == date:
+                    songs = self._setlist_to_set(st['sets']['set'])
+                    return songs
+                elif st['eventDate'] < date:
+                    return []
+            p += 1
+
+    def create_setlist_from_last_gigs(self, artist: str, n_setlist: int) -> List[str]:
+        mbid = self.get_artist_id(artist)
+        all_songs = []
+        n = 0
+        p = 1
+        while True:
+            query = f"artist/{mbid}/setlists?p={p}"
+            response = self._query(query)
+            for st in response['setlist']:
+                new_songs = self._setlist_to_set(st['sets']['set'])
+                all_songs = list(set(all_songs) | set(new_songs))
+                n += 1
+                if n >= n_setlist:
+                    return all_songs
+            p += 1
+
+    @staticmethod
+    def _setlist_to_set(setlist: dict) -> List[str]:
+        songs = []
+        for st in setlist:
+            for song in st['song']:
+                if song not in songs:
+                    songs.append(song['name'])
+        return songs
 
     def get_artist_id(self, artist: str) -> str:
         query = f"search/artists?p=1&artistName={artist}&sort=relevance"
