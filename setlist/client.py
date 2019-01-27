@@ -32,6 +32,22 @@ class SetlistClient:
                     return []
             p += 1
 
+    def create_setlist_from_last_gigs(self, artist: str, n_setlist: int) -> List[str]:
+        mbid = self.get_artist_id(artist)
+        all_songs = []
+        n = 0
+        p = 1
+        while True:
+            query = f"artist/{mbid}/setlists?p={p}"
+            response = self._query(query)
+            for st in response['setlist']:
+                new_songs = self._setlist_to_set(st['sets']['set'])
+                all_songs = list(set(all_songs) | set(new_songs))
+                n += 1
+                if n >= n_setlist:
+                    return all_songs
+            p += 1
+
     @staticmethod
     def _setlist_to_set(setlist: dict) -> List[str]:
         songs = []
