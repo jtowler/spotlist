@@ -2,7 +2,7 @@ from clients.setlist import SetlistClient
 from clients.spotify import SpotifyClient
 
 
-class SpotlistClient:
+class SpotListClient:
 
     def __init__(self, setlist_key: str, spotify_username: str, spotify_id: str, spotify_secret: str):
         self._setlist = SetlistClient(api_key=setlist_key)
