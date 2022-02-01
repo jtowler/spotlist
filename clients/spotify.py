@@ -1,17 +1,18 @@
 from typing import List
 import spotipy
-import spotipy.util as util
+from spotipy.oauth2 import SpotifyOAuth
 
 
 class SpotifyClient:
     def __init__(self, username: str, client_id: str, client_secret: str):
         self.username = username
-        token = util.prompt_for_user_token(username,
-                                           'playlist-modify-private playlist-modify-public',
-                                           client_id,
-                                           client_secret,
-                                           "http://localhost:8888/callback/")
-        self._client = spotipy.Spotify(auth=token)
+        sp_oauth = SpotifyOAuth(client_id, client_secret, 'http://localhost:8888/callback/',
+                                scope='playlist-modify-private playlist-modify-public')
+
+        code = sp_oauth.get_auth_response()
+        token = sp_oauth.get_access_token(code)
+        self._refresh_token = token['refresh_token']
+        self._client = spotipy.Spotify(auth=token['access_token'])
 
     def get_song_id(self, name: str, artist: str) -> str:
         response = self._client.search(q=f"artist: {artist}, track: {name}", type='track')
@@ -32,7 +33,7 @@ class SpotifyClient:
             except SpotifyError as e:
                 print(str(e))
         tracks = ["spotify:track:" + track for track in ids]
-        self._client.user_playlist_add_tracks(self.username, playlist['id'], tracks)
+        self._client.playlist_add_items(playlist['id'], tracks)
 
 
 class SpotifyError(Exception):
